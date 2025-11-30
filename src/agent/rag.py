@@ -20,6 +20,7 @@ from .vector_db import (
 embedding_model = "models/embedding-gecko-001"
 
 def save_vectors(
+    qdrant_client: QdrantClient,
     collection_name: str,
     chunks: List[str],
     payloads: List[Dict[str, Any]],
@@ -37,8 +38,8 @@ def save_vectors(
     Returns:
         The Qdrant client instance used for the operation.
     """
-    client = get_qdrant_client()
-    create_collection(client, collection_name, vector_size)
+
+    create_collection(qdrant_client, collection_name, vector_size)
     
     embeddings = generate_embeddings(chunks)
     
@@ -71,11 +72,13 @@ def search_pdf(query: str) -> List[Dict[str, Any]]:
         return []
 
     search_results = search_vectors(
-        get_qdrant_client(),
+        project_config.qdrant_client,
         project_config.session_id,
         query_embedding[0],
         5,
     )
+
+    logging.info(f'found {len(search_results)} embedding result')
     
     return [result.payload for result in search_results]
 
@@ -148,6 +151,7 @@ def setup_rag_pipeline(qdrant_client, pdf_path: str, collection_name: str):
         chunks = chunk_text(text)
 
         # Generate embeddings for the chunks
+        logging.info('generating embedding ...')
         embeddings = generate_embeddings(chunks)
         if not embeddings:
             return None

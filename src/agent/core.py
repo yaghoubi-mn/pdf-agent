@@ -1,17 +1,14 @@
 import asyncio
 import logging
+import os
 from google.adk.agents import Agent
 from google.adk.models import Gemini
-from google.adk.tools.agent_tool import AgentTool
-from google.adk.tools.function_tool import FunctionTool
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.adk.artifacts import InMemoryArtifactService
 
-from src.agent.schemas import QuizOutput
-
 from src.agent import config
-from src.agent.rag import search_pdf, get_pdf_page
+from src.agent.rag import search_pdf
 from src.pdf_translation.pdf_translator import translate_pdf_tool
 
 
@@ -21,15 +18,14 @@ app_name = 'agents'
 
 def create_agent_runner():
     
-
     agent = Agent(
         name="pdf_assistant",
         model=Gemini(
-            model="gemini-2.5-flash-lite",
+            model=os.getenv("AGENT_MODEL_NAME", "gemini-2.5-flash-lite"),
             retry_options=config.retry,
         ),
         description="A agent that answer questions based on PDF",
-        tools=[get_pdf_page, search_pdf, translate_pdf_tool],
+        tools=[search_pdf, translate_pdf_tool],
         instruction="""
         You are a generic PDF assistant.
 
@@ -74,7 +70,6 @@ def create_agent_runner():
         - Do not ask user for pdf, use your tools.
              
         """
-                # in normal mode don't need to respond with JSON, only respond with plain text.
     )
 
 
@@ -91,8 +86,6 @@ def init_session(session_id: str, user_id: str):
 
     async def _get_or_create():
             
-
-    
         session = await session_service.get_session(
             session_id=session_id,
             user_id=user_id,

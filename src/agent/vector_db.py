@@ -1,9 +1,18 @@
+import logging
 from qdrant_client import QdrantClient, models
+from src import config as project_config
+
+
+
 
 def get_qdrant_client():
     """Initializes and returns a Qdrant client."""
-    return QdrantClient(host="localhost", port=6333)
-    # return QdrantClient(":memory:")
+    
+    if project_config.DEBUG:
+        return QdrantClient(host="localhost", port=6333)
+    else:
+        return QdrantClient(":memory:")
+
 
 
 def get_all_collection_data(client: QdrantClient, collection_name: str, raise_error: bool = True):
@@ -34,17 +43,20 @@ def create_collection(client: QdrantClient, collection_name: str, vector_size: i
     """
     try:
         if recreate:
-            client.recreate_collection(
+            result = client.recreate_collection(
                 collection_name=collection_name,
                 vectors_config=models.VectorParams(size=vector_size, distance=models.Distance.COSINE),
             )
         else:
-            client.create_collection(
+            result = client.create_collection(
                 collection_name=collection_name,
                 vectors_config=models.VectorParams(size=vector_size, distance=models.Distance.COSINE),
             )
+
+            if not result:
+                logging.error('Error in creating collection')
     except Exception as e:
-        print(f"Error creating collection: {e}")
+        logging.error(f"Error in creating collection: {e}")
 
 def upsert_vectors(client: QdrantClient, collection_name: str, vectors, payloads):
     """

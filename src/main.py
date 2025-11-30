@@ -16,9 +16,7 @@ from src.ui.components import display_pdf_translation, render_quiz
 from src import config
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 
 
@@ -30,7 +28,8 @@ def main():
 
     st.title("PDF Agent")
 
-    qdrant_client = get_qdrant_client()
+    if not config.qdrant_client:
+        config.qdrant_client = get_qdrant_client()
 
     user_id = "test-user"
 
@@ -38,7 +37,6 @@ def main():
         st.session_state.session_id = str(uuid.uuid4())
         config.session_id = st.session_state.session_id
         config.user_id = user_id
-
     init_session(st.session_state.session_id, user_id)
 
     if not config.DEBUG:
@@ -46,19 +44,17 @@ def main():
 
     if config.DEBUG or uploaded_file is not None:
         if not config.DEBUG:
-            os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+            os.makedirs(config.UPLOAD_FOLDER, exist_ok=True)
         
-            with open(UPLOAD_PDF, "wb") as f:
+            with open(config.UPLOAD_PDF, "wb") as f:
                 f.write(uploaded_file.getbuffer())
 
         
         if "rag_pipeline_initialized" not in st.session_state:
             with st.spinner("Processing PDF for Q&A... This may take a while."):
-                logging.info('qdrant database data:')
-                records = get_all_collection_data(qdrant_client, st.session_state.session_id, False)
             
-                if not records: # just in debug mode
-                    setup_rag_pipeline(qdrant_client, config.UPLOAD_PDF, st.session_state.session_id)
+                logging.info('Processing PDF for Q&A...')
+                setup_rag_pipeline(config.qdrant_client, config.UPLOAD_PDF, st.session_state.session_id)
 
                 st.session_state.rag_pipeline_initialized = True
                 st.success("PDF processed and ready for Q&A!")
@@ -68,6 +64,9 @@ def main():
 
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
+                if "is_translate" in message and message["is_translate"]:
+                    display_pdf_translation(config.UPLOAD_PDF, config.PROCESSED_PDF)
+
                 st.markdown(message["content"])
         
         
@@ -124,18 +123,23 @@ def main():
                             st.markdown(response.get('model_response', ''))
 
 
-                    elif "translated_pdf" in response:
+                    elif "translate_pdf" in response:
                         logging.info('enter pdf translation mode ...')
                         
                         display_pdf_translation(config.UPLOAD_PDF, config.PROCESSED_PDF)
                         st.markdown(response["model_response"])
-
-
+                        st.session_state.messages.append(
+                            {
+                                "role": "assistant",
+                                "content": response["model_response"],
+                                "is_translate": True,
+                            }
+                        )
                     else:
                         st.markdown(response["model_response"])
-            st.session_state.messages.append(
-                {"role": "assistant", "content": response["model_response"]}
-            )
+                        st.session_state.messages.append(
+                            {"role": "assistant", "content": response["model_response"]}
+                        )
 
 
 if __name__ == "__main__":

@@ -11,3 +11,4 @@ RECREATE_COLLECTION = not DEBUG
 
 session_id = None
 user_id = None
+qdrant_client = None
