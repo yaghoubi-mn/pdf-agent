@@ -52,35 +52,44 @@ PDF Agent is an intelligent tool designed to streamline your interaction with PD
 5.  **Open the application**:
     Open your browser and go to `http://localhost:8501`.
 
-## ⏭️ Next Features Checklist
-
--   [ ] Add support for more languages in the translation feature.
--   [ ] Improve the quiz generation feature to support more question types.
 
 ## 📚 Documentation
 
 ### Project Structure
 
 ```
-.
+pdf-agent
 ├── Dockerfile
 ├── LICENSE
+├── pyrightconfig.json
+├── pytest.ini
 ├── README.md
 ├── requirements.txt
 ├── src
 │   ├── agent
+│   │   ├── config.py
 │   │   ├── core.py
+│   │   ├── __init__.py
 │   │   ├── rag.py
-│   │   └── ...
+│   │   ├── schemas.py
+│   │   ├── translator.py
+│   │   └── vector_db.py
+│   ├── config.py
+│   ├── __init__.py
+│   ├── main.py
 │   ├── pdf_tools
+│   │   ├── __init__.py
 │   │   └── pdf_extractor.py
 │   ├── pdf_translation
+│   │   ├── __init__.py
 │   │   ├── pdf_translator.py
-│   │   └── ...
-│   ├── ui
-│   │   └── components.py
-│   └── main.py
+│   │   └── utils.py
+│   └── ui
+│       ├── components.py
+│       └── __init__.py
 └── tests
+    ├── __init__.py
+    └── unit
 ```
 
 ### How it Works
@@ -97,3 +106,15 @@ The agent has access to the following tools:
 
 -   **`search_pdf`**: This is the core of the RAG functionality. When a user asks a question, this tool searches the PDF for relevant information and provides it to the agent to generate an answer.
 -   **`translate_pdf_tool`**: When a user requests a translation, this tool translates the entire PDF document.
+
+#### Flow
+
+The user experience follows this flow:
+
+1. Upload: The user uploads a PDF (e.g., a research paper). The app will generate and save vectors from PDF.
+
+2. Chat: The user asks, "What are the key findings?" The agent searches Qdrant and summarizes the result.  
+
+3. Quiz: The user types, "Generate quiz about the methodology." The Agent will search the PDF for methodology and based on the results, generates a JSON payload. The Streamlit UI immediately renders a multiple-choice or open-ended quiz. The user selects answers and gets instant feedback and also score.
+
+4. Translate PDF: The user asks, "Translate PDF to German.", The agent triggers the translation tool. It processes the file block-by-block and give it to translation model (default is gemma-3-27b-it). Then the UI will show both origin PDF on the left and translated PDF on the right.
