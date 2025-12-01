@@ -67,7 +67,20 @@ def translate_text(blocks: list[dict], target_language: str, previous_pages: lis
             
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse JSON response from translator model: {e}. Raw response: {text_resp}")
-            time.sleep(15)
+            logger.info("tring to fix it ...")
+            context = f"Fix this JSON and return the JSON only:\n Error: {e}\n\nJSON: {text_resp}"
+            
+            try:
+                response = model.generate_content(context)
+                text_resp = response.text.strip()
+                translated_list = json.loads(text_resp)
+                return {item['id']: item['translation'] for item in translated_list}
+
+            except Exception as e:
+                logger.error(f'An unexpected error occurred during fixing JSON: {e}')
+                logger.info("Sleeping for 15 seconds before retrying translation...")
+                time.sleep(15)
+
         except Exception as e:
             logger.error(f'An unexpected error occurred during translation: {e}')
             logger.info("Sleeping for 15 seconds before retrying translation...")

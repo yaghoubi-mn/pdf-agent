@@ -1,5 +1,7 @@
 FROM python:3.12-slim
 
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive TESSERACT_LANGUAGES=all apt-get install -y fonts-noto-cjk
+
 WORKDIR /app
 
 COPY requirements.txt .
