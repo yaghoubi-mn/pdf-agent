@@ -1,6 +1,5 @@
-import asyncio
-import logging
 import os
+import asyncio
 from google.adk.agents import Agent
 from google.adk.models import Gemini
 from google.adk.runners import Runner
@@ -10,6 +9,7 @@ from google.adk.artifacts import InMemoryArtifactService
 from src.agent import config
 from src.agent.rag import search_pdf
 from src.pdf_translation.pdf_translator import translate_pdf_tool
+from src.config import logger
 
 
 session_service = InMemorySessionService()
@@ -17,6 +17,7 @@ artifact_service = InMemoryArtifactService()
 app_name = 'agents'
 
 def create_agent_runner():
+    logger.info("Creating PDF assistant agent runner.")
     
     agent = Agent(
         name="pdf_assistant",
@@ -83,27 +84,34 @@ def create_agent_runner():
 
 
 def init_session(session_id: str, user_id: str):
+    logger.info(f"Initializing session for user: {user_id}, session: {session_id}")
 
     async def _get_or_create():
-            
+        logger.debug(f"Attempting to get or create session {session_id} for user {user_id}")
         session = await session_service.get_session(
             session_id=session_id,
             user_id=user_id,
             app_name=app_name
         )
         if not session:
-            logging.info(f"session not found creating a new session.")
+            logger.info(f"Session {session_id} not found, creating a new session.")
             await session_service.create_session(
                 session_id=session_id,
                 user_id=user_id,
                 app_name=app_name
             )
+            logger.info(f"Session {session_id} created successfully.")
+        else:
+            logger.info(f"Session {session_id} retrieved successfully.")
 
     try:
         asyncio.run(_get_or_create())
-    except RuntimeError:
+    except RuntimeError as e:
+        logger.warning(f"RuntimeError during session initialization: {e}. Retrying with existing event loop.")
         loop = asyncio.get_event_loop()
         loop.run_until_complete(_get_or_create())
+    except Exception as e:
+        logger.error(f"An unexpected error occurred during session initialization: {e}")
 
 
         

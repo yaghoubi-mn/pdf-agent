@@ -1,5 +1,5 @@
 from typing import List
-import logging
+from src.config import logger
 
 import fitz  # PyMuPDF
 
@@ -20,10 +20,12 @@ def extract_text_from_pdf(pdf_path: str) -> str:
         for page_num in range(len(document)):
             page = document.load_page(page_num)
             text += str(page.get_text())
-        logging.info(f"Successfully extracted text from {pdf_path}")
+        logger.info(f"Successfully extracted text from {pdf_path}")
+        if not text:
+            logger.warning(f"Extracted text from {pdf_path} is empty.")
         return text
     except Exception as e:
-        logging.error(f"Error extracting text from {pdf_path}: {e}")
+        logger.error(f"Error extracting text from {pdf_path}: {e}")
         return ""
 
 
@@ -40,7 +42,9 @@ def chunk_text(text: str, chunk_size: int = 1000, chunk_overlap: int = 200) -> L
     Returns:
         A list of text chunks.
     """
+    logger.debug(f"Chunking text with chunk_size={chunk_size}, chunk_overlap={chunk_overlap}")
     if not text:
+        logger.warning("No text provided for chunking.")
         return []
 
     chunks = []
@@ -49,4 +53,5 @@ def chunk_text(text: str, chunk_size: int = 1000, chunk_overlap: int = 200) -> L
         end = start + chunk_size
         chunks.append(text[start:end])
         start += chunk_size - chunk_overlap
+    logger.info(f"Text chunked into {len(chunks)} chunks.")
     return chunks

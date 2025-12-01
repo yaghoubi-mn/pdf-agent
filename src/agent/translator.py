@@ -1,11 +1,12 @@
-import json
-import logging
 import os
 import time
+import json
 import google.generativeai as genai
 
 # Configure the generative AI model
 # genai.configure(api_key="YOUR_API_KEY")
+from src.config import logger
+
 model = genai.GenerativeModel(
     os.getenv("TRANSLATOR_MODEL_NAME", 'gemma-3-27b-it'),
 )
@@ -26,8 +27,10 @@ def translate_text(blocks: list[dict], target_language: str, previous_pages: lis
     """
 
     """
+    logger.info(f"Translating {len(blocks)} blocks to {target_language}.")
     
     if not blocks:
+        logger.debug("No blocks provided for translation.")
         return {}
 
 
@@ -56,14 +59,18 @@ def translate_text(blocks: list[dict], target_language: str, previous_pages: lis
 
             translated_list = json.loads(text_resp)
 
-            logging.info(f'orginal blocks: {blocks_json}')
-            logging.info(f'translated blocks: {text_resp}')
+            logger.debug(f'Original blocks: {blocks_json}')
+            logger.debug(f'Translated blocks: {text_resp}')
+            logger.info("Text blocks translated successfully.")
 
             return {item['id']: item['translation'] for item in translated_list}
             
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse JSON response from translator model: {e}. Raw response: {text_resp}")
+            time.sleep(15)
         except Exception as e:
-            logging.error(f'error in translating: {e}')
-            logging.info("sleeping for 15 seconds ...")
+            logger.error(f'An unexpected error occurred during translation: {e}')
+            logger.info("Sleeping for 15 seconds before retrying translation...")
             time.sleep(15)
 
 

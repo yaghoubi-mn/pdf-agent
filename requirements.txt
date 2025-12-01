@@ -4,5 +4,4 @@ google-generativeai
 google-adk
 qdrant-client
 python-dotenv
-pdf2image
 Pillow
